@@ -8,11 +8,11 @@ from selenium.webdriver.common.by import By
 from datetime import datetime
 from selenium.webdriver.chrome.options import Options
 
-
 import pandas as pd
 from tkinter import messagebox as mbox
 
 module_logger = logging.getLogger("main.selenium")
+
 
 def format_date_with_dot(date):
     date = date[:2] + '.' + date[2:4] + '.' + date[4:]
@@ -103,11 +103,6 @@ def open_browser(dict_with_data):
                 if year == first_year and month > first_month:
                     first_day = 1
 
-
-                summa_for_work += val
-                ruble_input_field.clear()
-                ruble_input_field.send_keys(summa_for_work, Keys.ARROW_RIGHT)
-                time.sleep(var_delay)
                 date_from = driver.find_element(By.ID, 'dateFrom')
                 shadow_root_date_from = driver.execute_script('return arguments[0].shadowRoot', date_from)
                 date_from_input = shadow_root_date_from.find_element(By.CLASS_NAME, 'dateinput')
@@ -128,7 +123,6 @@ def open_browser(dict_with_data):
                 shadow_root_date_to = driver.execute_script('return arguments[0].shadowRoot', date_to)
                 date_to_input = shadow_root_date_to.find_element(By.CLASS_NAME, 'dateinput')
 
-
                 last_day_of_month = calendar.monthrange(year, month)[1]
 
                 if not var_last_day:
@@ -138,17 +132,33 @@ def open_browser(dict_with_data):
                     if year == currentYear and month == currentMonth:
                         if last_day_of_month >= currentDay:
                             last_day_of_month = currentDay - 1
-                current_date_to = f"{last_day_of_month}{month}{year}"
+
+                if last_day_of_month < 10:
+                    current_date_to = f"0{last_day_of_month}"
+                else:
+                    current_date_to = f"{last_day_of_month}"
                 if month < 10:
-                    current_date_to = f"{last_day_of_month}0{month}{year}"
+                    current_date_to += f"0{month}{year}"
+                else:
+                    current_date_to += f"{month}{year}"
                 date_to_input.clear()
                 date_to_input.send_keys(current_date_to, Keys.ENTER)
-
-
                 time.sleep(var_delay)
+
+                if not var_last_day:
+                    if year == last_year and month == last_month:
+                        count_day_in_month = calendar.monthrange(year, month)[1]
+                        val = val / count_day_in_month * last_day_of_month
+
+                summa_for_work += val
+                ruble_input_field.clear()
+                ruble_input_field.send_keys(summa_for_work, Keys.ARROW_RIGHT)
+                time.sleep(var_delay)
+
                 try:
                     district_input = driver.find_element(By.ID, 'districtInput')
-                    date_picker = district_input.find_element(By.XPATH, '//*[@id="districtInput"]/div[2]/dropdown-select')
+                    date_picker = district_input.find_element(By.XPATH,
+                                                              '//*[@id="districtInput"]/div[2]/dropdown-select')
                     shadow_root_district = driver.execute_script('return arguments[0].shadowRoot', date_picker)
                     shadow_root_district.find_element(By.CLASS_NAME, 'button').click()
                     input_region_field = shadow_root_district.find_element(By.CLASS_NAME, 'base-input')
@@ -160,8 +170,8 @@ def open_browser(dict_with_data):
                 time.sleep(var_delay)
 
                 table = driver.find_element(By.CLASS_NAME, 'periods-detalization')
-                qq = table.get_attribute('innerHTML')
-                pandas_table = pd.read_html(qq, thousands=None)
+                inner_html_table = table.get_attribute('innerHTML')
+                pandas_table = pd.read_html(inner_html_table, thousands=None)
                 pandas_table = pandas_table[0]
                 for row, cell in enumerate(pandas_table.values):
                     if row >= 2:
@@ -169,9 +179,9 @@ def open_browser(dict_with_data):
                         date_period.append(cell[0])
                         num_sum.append(val)
                         summa.append(summa_for_work)
-                        procent_of_period.append(float(cell[4].replace(',', '.')))
+                        procent_of_period.append(float(cell[4].replace(',', '.').replace('\xa0', '')))
                         day_in_month.append(int(cell[1]))
-                        bank_rate.append(float(cell[2].replace(',', '.')))
+                        bank_rate.append(float(cell[2].replace(',', '.').replace('\xa0', '')))
                         row = len(num_sum) + 1
                         procent_of_day.append(f"=F{row}/G{row}")
                 time.sleep(0.1)

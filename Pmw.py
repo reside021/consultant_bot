@@ -1,3 +1,9 @@
+import _collections_abc
+
+
+
+
+
 
 ### Loader functions:
 
@@ -2522,7 +2528,7 @@ class Balloon(MegaToplevel):
     def showstatus(self, statusHelp):
         if self['state'] in ('status', 'both'):
             cmd = self['statuscommand']
-            if isinstance(cmd, collections.Callable):
+            if isinstance(cmd, _collections_abc.Callable):
                 cmd(statusHelp)
 
     def clearstatus(self):
