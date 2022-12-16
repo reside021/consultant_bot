@@ -7,6 +7,9 @@ from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from datetime import datetime
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
+
 
 import pandas as pd
 from tkinter import messagebox as mbox
@@ -44,12 +47,13 @@ def open_browser(dict_with_data):
 
         try:
             options = Options()
+            service = ChromeService(executable_path=ChromeDriverManager().install())
             if var_visual:
                 options.add_argument("--start-maximized")
             else:
                 options.add_argument('--headless')
                 options.add_argument('--disable-gpu')
-            driver = webdriver.Chrome(options=options)
+            driver = webdriver.Chrome(service=service, options=options)
             driver.get("https://calc.consultant.ru/395gk")
         except Exception as ex:
             text = f"Текст ошибки:\n\n{ex.msg}\n\nПроверьте версии Google Chrome и ChromeDriver."
@@ -145,10 +149,10 @@ def open_browser(dict_with_data):
                 date_to_input.send_keys(current_date_to, Keys.ENTER)
                 time.sleep(var_delay)
 
-                if not var_last_day:
-                    if year == last_year and month == last_month:
-                        count_day_in_month = calendar.monthrange(year, month)[1]
-                        val = val / count_day_in_month * last_day_of_month
+                # if not var_last_day:
+                if year == last_year and month == last_month:
+                    count_day_in_month = calendar.monthrange(year, month)[1]
+                    val = val / count_day_in_month * last_day_of_month
 
                 summa_for_work += val
                 ruble_input_field.clear()
