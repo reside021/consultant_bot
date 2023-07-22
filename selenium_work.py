@@ -6,10 +6,11 @@ from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from datetime import datetime
+from datetime import date
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
-
+from dateutil.relativedelta import *
 
 import pandas as pd
 from tkinter import messagebox as mbox
@@ -17,9 +18,10 @@ from tkinter import messagebox as mbox
 module_logger = logging.getLogger("main.selenium")
 
 
-def format_date_with_dot(date):
-    date = date[:2] + '.' + date[2:4] + '.' + date[4:]
-    return date
+
+def format_date_with_dot(_date):
+    _date = _date[:2] + '.' + _date[2:4] + '.' + _date[4:]
+    return _date
 
 
 def open_browser(dict_with_data):
@@ -35,6 +37,7 @@ def open_browser(dict_with_data):
         directory_for_result = dict_with_data['directory']
         var_visual = dict_with_data['var_visualization']
         var_delay = dict_with_data['var_delay']
+        var_begin_month = dict_with_data['var_begin_month']
 
         if var_last_day:
             last_month = datetime.now().month
@@ -74,7 +77,7 @@ def open_browser(dict_with_data):
         summa_for_work = 0
 
         # Массивы данных для будущей таблицы
-        date = []
+        dates = []
         date_period = []
         num_sum = []
         summa = []
@@ -87,72 +90,114 @@ def open_browser(dict_with_data):
         currentDay = datetime.now().day
         currentMonth = datetime.now().month
 
-        for year in range(2000, currentYear + 1, 1):
-            if year < first_year:
-                continue
-            for month in range(1, 13, 1):
+        date_from = driver.find_element(By.ID, 'dateFrom')
+        shadow_root_date_from = driver.execute_script('return arguments[0].shadowRoot', date_from)
+        date_from_input = shadow_root_date_from.find_element(By.CLASS_NAME, 'dateinput')
 
+        date_to = driver.find_element(By.ID, 'dateTo')
+        shadow_root_date_to = driver.execute_script('return arguments[0].shadowRoot', date_to)
+        date_to_input = shadow_root_date_to.find_element(By.CLASS_NAME, 'dateinput')
+
+        use_date = date(first_year, first_month, first_day)
+
+        start_date = date(first_year, first_month, first_day)
+
+        end_date = date(first_year, first_month, first_day)
+
+        start_period = list()
+        end_period = list()
+
+        if var_last_day:
+            currentDay -= 1
+            last_day = currentDay
+            last_year = currentYear
+            last_month = currentMonth
+
+        for year in range(first_year, last_year + 1, 1):
+            for month in range(1, 13, 1):
                 if year == first_year and month < first_month:
                     continue
 
-                if year == currentYear and month > currentMonth:
-                    break
+                if var_begin_month:
+                    # блок счета с выбранного дня
+                    if year == last_year and use_date.month == last_month:
+                        if use_date.day == last_day:
+                            break
+                        if use_date.day < last_day:
+                            count_day = last_day - use_date.day + 1
+                            next_month_date = use_date + relativedelta(months=+1)
+                            count_day_in_month = (next_month_date - use_date).days
+                            use_date = use_date.replace(day=last_day)
+                            val = val / count_day_in_month * count_day
+                    else:
+                        use_date = use_date + relativedelta(months=+1)
 
-                if year > last_year:
-                    break
+                    if year == last_year and use_date.month > last_month:
+                        break
 
-                if year == last_year and month > last_month:
-                    break
+                    if year == last_year and use_date.month == last_month:
+                        if use_date.day > last_day:
+                            count_day_in_month = use_date - start_date
+                            use_date = use_date.replace(day=last_day)
+                            val = val / count_day_in_month.days * (use_date - start_date).days
 
-                if year == first_year and month > first_month:
-                    first_day = 1
+                    end_date = use_date
+                    end_date_truth = end_date + relativedelta(days=-1)
 
-                date_from = driver.find_element(By.ID, 'dateFrom')
-                shadow_root_date_from = driver.execute_script('return arguments[0].shadowRoot', date_from)
-                date_from_input = shadow_root_date_from.find_element(By.CLASS_NAME, 'dateinput')
-                if first_day < 10:
-                    current_date_from = f"0{first_day}"
+                    if year == last_year and use_date.month == last_month:
+                        if use_date.day > last_day:
+                            end_date_truth = end_date + relativedelta(days=+1)
+                    start_period = list(reversed(start_date.isoformat().split('-')))
+                    end_period = list(reversed(end_date_truth.isoformat().split('-')))
+                    start_date = end_date
+
                 else:
-                    current_date_from = f"{first_day}"
-                if month < 10:
-                    current_date_from += f"0{month}{year}"
-                else:
-                    current_date_from += f"{month}{year}"
+                    # блок счета с начала месяца
+
+                    if year == last_year and month > last_month:
+                        break
+
+                    last_day_of_month = calendar.monthrange(use_date.year, use_date.month)[1]
+
+                    if year == first_year and month == first_month:
+                        if last_day_of_month >= first_day:
+                            end_date = end_date.replace(day=last_day_of_month)
+                            count_day_in_month = calendar.monthrange(end_date.year, end_date.month)[1]
+                            count_days = last_day_of_month - first_day + 1
+                            val = val / count_day_in_month * count_days
+
+                    else:
+                        use_date = use_date + relativedelta(months=+1)
+                        val = debt_sum
+                        use_date = use_date.replace(day=1)
+                        start_date = start_date.replace(year=use_date.year, month=use_date.month, day=use_date.day)
+                        last_day_of_month = calendar.monthrange(use_date.year, use_date.month)[1]
+                        end_date = end_date.replace(year=use_date.year, month=use_date.month, day=last_day_of_month)
+
+                    if year == last_year and use_date.month == last_month:
+                        last_day_of_month = last_day
+                        end_date = end_date.replace(day=last_day_of_month)
+                        count_day_in_month = calendar.monthrange(end_date.year, end_date.month)[1]
+                        val = val / count_day_in_month * last_day_of_month
+
+                    start_period = list(reversed(start_date.isoformat().split('-')))
+                    end_period = list(reversed(end_date.isoformat().split('-')))
+
+
+
+                current_date_from = f"{start_period[0]}{start_period[1]}{start_period[2]}"
+
                 date_from_input.clear()
                 date_from_input.send_keys(current_date_from, Keys.ENTER)
 
                 time.sleep(var_delay)
 
-                date_to = driver.find_element(By.ID, 'dateTo')
-                shadow_root_date_to = driver.execute_script('return arguments[0].shadowRoot', date_to)
-                date_to_input = shadow_root_date_to.find_element(By.CLASS_NAME, 'dateinput')
+                current_date_to = f"{end_period[0]}{end_period[1]}{end_period[2]}"
 
-                last_day_of_month = calendar.monthrange(year, month)[1]
-
-                if not var_last_day:
-                    if year == last_year and month == last_month:
-                        last_day_of_month = last_day
-                else:
-                    if year == currentYear and month == currentMonth:
-                        if last_day_of_month >= currentDay:
-                            last_day_of_month = currentDay - 1
-
-                if last_day_of_month < 10:
-                    current_date_to = f"0{last_day_of_month}"
-                else:
-                    current_date_to = f"{last_day_of_month}"
-                if month < 10:
-                    current_date_to += f"0{month}{year}"
-                else:
-                    current_date_to += f"{month}{year}"
                 date_to_input.clear()
                 date_to_input.send_keys(current_date_to, Keys.ENTER)
-                time.sleep(var_delay)
 
-                # if not var_last_day:
-                if year == last_year and month == last_month:
-                    count_day_in_month = calendar.monthrange(year, month)[1]
-                    val = val / count_day_in_month * last_day_of_month
+                time.sleep(var_delay)
 
                 summa_for_work += val
                 ruble_input_field.clear()
@@ -169,6 +214,7 @@ def open_browser(dict_with_data):
                     input_region_field.send_keys('Республика Бурятия', Keys.ENTER)
                 except Exception as ex:
                     pass
+
                 time.sleep(0.1)
                 driver.find_element(By.ID, 'calcSubmit').click()
                 time.sleep(var_delay)
@@ -179,7 +225,7 @@ def open_browser(dict_with_data):
                 pandas_table = pandas_table[0]
                 for row, cell in enumerate(pandas_table.values):
                     if row >= 2:
-                        date.append(format_date_with_dot(current_date_from))
+                        dates.append(format_date_with_dot(current_date_from))
                         date_period.append(cell[0])
                         num_sum.append(val)
                         summa.append(summa_for_work)
@@ -191,7 +237,7 @@ def open_browser(dict_with_data):
                 time.sleep(0.1)
 
         dict_result = {
-            'Дата месяц/год': date,
+            'Дата месяц/год': dates,
             'период расчета': date_period,
             'начисления': num_sum,
             'недоимка': summa,
@@ -201,7 +247,7 @@ def open_browser(dict_with_data):
             '% за день': procent_of_day
         }
         df = pd.DataFrame(dict_result)
-        df.to_excel(f'{directory_for_result}/result_{val}.xlsx')
+        df.to_excel(f'{directory_for_result}/result_{debt_sum}_{datetime.now().second}.xlsx')
 
         time.sleep(3)
         logger.info("Successful starting of the bot")
