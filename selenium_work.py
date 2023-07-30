@@ -8,8 +8,6 @@ from selenium.webdriver.common.by import By
 from datetime import datetime
 from datetime import date
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service as ChromeService
 from dateutil.relativedelta import *
 
 import pandas as pd
@@ -50,13 +48,12 @@ def open_browser(dict_with_data):
 
         try:
             options = Options()
-            service = ChromeService(executable_path=ChromeDriverManager().install())
             if var_visual:
                 options.add_argument("--start-maximized")
             else:
                 options.add_argument('--headless')
                 options.add_argument('--disable-gpu')
-            driver = webdriver.Chrome(service=service, options=options)
+            driver = webdriver.Chrome(options=options)
             driver.get("https://calc.consultant.ru/395gk")
         except Exception as ex:
             text = f"Текст ошибки:\n\n{ex.msg}\n\nПроверьте версии Google Chrome и ChromeDriver."
@@ -145,8 +142,10 @@ def open_browser(dict_with_data):
                     end_date_truth = end_date + relativedelta(days=-1)
 
                     if year == last_year and use_date.month == last_month:
-                        if use_date.day > last_day:
+                        if use_date.day >= last_day:
                             end_date_truth = end_date + relativedelta(days=+1)
+                        if var_last_day:
+                            end_date_truth = end_date
                     start_period = list(reversed(start_date.isoformat().split('-')))
                     end_period = list(reversed(end_date_truth.isoformat().split('-')))
                     start_date = end_date
