@@ -8,6 +8,8 @@ from selenium.webdriver.common.by import By
 from datetime import datetime
 from datetime import date
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
 from dateutil.relativedelta import *
 
 import pandas as pd
@@ -53,10 +55,10 @@ def open_browser(dict_with_data):
             else:
                 options.add_argument('--headless')
                 options.add_argument('--disable-gpu')
-            driver = webdriver.Chrome(options=options)
+            driver = webdriver.Chrome(options=options, service=ChromeService(ChromeDriverManager().install()))
             driver.get("https://calc.consultant.ru/395gk")
         except Exception as ex:
-            text = f"Текст ошибки:\n\n{ex.msg}\n\nПроверьте версии Google Chrome и ChromeDriver."
+            text = f"Текст ошибки:\n\n{ex}\n\nПроверьте версии Google Chrome и ChromeDriver."
             mbox.showerror("Ошибка запуска браузера", text)
             return
 
