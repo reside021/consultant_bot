@@ -225,7 +225,7 @@ def open_browser(dict_with_data):
                 pandas_table = pd.read_html(inner_html_table, thousands=None)
                 pandas_table = pandas_table[0]
                 for row, cell in enumerate(pandas_table.values):
-                    if row >= 2:
+                    if row > 0:
                         dates.append(format_date_with_dot(current_date_from))
                         date_period.append(cell[0])
                         num_sum.append(val)
