@@ -1,6 +1,7 @@
 import time
 import calendar
 import logging
+from io import StringIO
 
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -222,7 +223,7 @@ def open_browser(dict_with_data):
 
                 table = driver.find_element(By.CLASS_NAME, 'periods-detalization')
                 inner_html_table = table.get_attribute('innerHTML')
-                pandas_table = pd.read_html(inner_html_table, thousands=None)
+                pandas_table = pd.read_html(StringIO(inner_html_table), thousands=None)
                 pandas_table = pandas_table[0]
                 for row, cell in enumerate(pandas_table.values):
                     if row > 0:
